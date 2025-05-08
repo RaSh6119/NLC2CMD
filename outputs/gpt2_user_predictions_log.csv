@@ -1,0 +1,2 @@
+invocation,predicted_cmd,generation_time,bleu_score
+"Delete a file one.py from the text folder","find . -name "*.py" -exec rm {} \;",0.5950,0

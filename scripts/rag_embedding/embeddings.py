@@ -6,16 +6,12 @@ import chromadb
 from chromadb.config import Settings
 from chromadb import PersistentClient
 
-# -----------------------------
-# Step 1: Load CSV from data/
-# -----------------------------
-base_dir = os.path.dirname(os.path.abspath(__file__))  # scripts/rag_embedding
+base_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(base_dir, "../../data/utility_descriptions.csv")
 
 df = pd.read_csv(data_path)
 df.dropna(how='all', inplace=True)
 
-# Combine fields into a single text block per row
 def combine_fields(row):
     parts = [str(row['Utility']).strip()]
     if pd.notna(row['TLDRText']):
@@ -27,26 +23,20 @@ def combine_fields(row):
 df['full_text'] = df.apply(combine_fields, axis=1)
 texts = df['full_text'].tolist()
 
-# -----------------------------
-# Step 2: Load HuggingFace Model
-# -----------------------------
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name).to(device)
 
-# -----------------------------
-# Step 3: Mean Pooling Function
-# -----------------------------
+
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0]
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size())
     return (token_embeddings * input_mask_expanded).sum(1) / input_mask_expanded.sum(1)
 
-# -----------------------------
-# Step 4: Generate Embeddings
-# -----------------------------
+
 encoded_input = tokenizer(
     texts,
     padding=True,
@@ -60,9 +50,7 @@ with torch.no_grad():
 sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
 embeddings_np = sentence_embeddings.cpu().numpy()
 
-# -----------------------------
-# Step 5: Store in ChromaDB
-# -----------------------------
+
 persist_path = os.path.join(base_dir, "../../utils/chroma_db")
 
 # client = chromadb.Client(Settings(
